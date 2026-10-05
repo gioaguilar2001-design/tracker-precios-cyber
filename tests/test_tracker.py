@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import tracker_precios as tp  # noqa: E402
+import scraper as tp  # noqa: E402
 
 
 def test_limpiar_precio():
@@ -39,6 +39,9 @@ def test_filtro():
         "Disco olímpico 30kg (2x15)",
         "Disco 15 kg estándar",  # no es olímpico
         "Barra olímpica 15 kg mujer",  # no es disco
+        "Kit discos olímpicos 15 kg",
+        "Juego de discos olímpicos bumper 15kg",
+        "Barra olímpica + disco olímpico 15 kg",
     ]
     for t in ok:
         assert tp.es_disco_olimpico_15kg(t), t

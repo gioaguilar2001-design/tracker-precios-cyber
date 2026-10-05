@@ -1,4 +1,4 @@
 .venv/
 __pycache__/
 .pytest_cache/
-precios_cyber_discos.csv
+precios_discos.csv

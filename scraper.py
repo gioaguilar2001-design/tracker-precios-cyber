@@ -8,29 +8,29 @@ corresponden a discos olímpicos de 15 kg, muestra una tabla con `rich` ordenada
 por precio y exporta todo a `precios_cyber_discos.csv`.
 
 Uso:
-    python tracker_precios.py                 # todas las tiendas
-    python tracker_precios.py --tiendas ml falabella
-    python tracker_precios.py --visible       # abre el navegador (debug)
+    python scraper.py                        # todas las tiendas
+    python scraper.py --tiendas ml falabella
+    python scraper.py --visible       # abre el navegador (debug)
 """
 
 from __future__ import annotations
 
 import argparse
+import csv
 import asyncio
 import json
 import os
 import re
 import unicodedata
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import quote_plus, urljoin
 
-import pandas as pd
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 from rich.console import Console
 from rich.table import Table
 
-CSV_SALIDA = "precios_cyber_discos.csv"
+CSV_SALIDA = "precios_discos.csv"
 TIMEOUT_MS = 45_000
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -76,6 +76,8 @@ PALABRAS_EXCLUIDAS = (
     r"\b25\s?mm\b",
     r"\b30\s?mm\b",
     r"barra\s+sola",
+    r"\b(?:set|sets|kit|juego|combo)\b",  # sets completos
+    r"con\s+barra|\+.*\bbarra\b|\bbarra\b.*\+",  # packs barra + discos
 )
 RE_EXCLUIDAS = re.compile("|".join(PALABRAS_EXCLUIDAS))
 # Captura pesos tipo "15kg", "15 kg", "15 kilos", "2,5kg", "10-15 kg"
@@ -354,7 +356,7 @@ def mostrar_tabla(productos: list[Producto], estado: dict[str, str]) -> None:
     console.print(resumen)
 
     tabla = Table(
-        title="🏋️  Discos olímpicos 15 kg (50 mm) — Cyber Chile",
+        title="Discos olímpicos 15 kg (50 mm) — Cyber Chile",
         header_style="bold magenta", show_lines=True,
     )
     tabla.add_column("#", justify="right", style="dim")
@@ -375,10 +377,12 @@ def mostrar_tabla(productos: list[Producto], estado: dict[str, str]) -> None:
 
 
 def exportar_csv(productos: list[Producto], ruta: str = CSV_SALIDA) -> None:
-    df = pd.DataFrame([asdict(p) for p in productos], columns=["nombre", "precio", "tienda", "url"])
-    df.columns = ["Nombre", "Precio", "Tienda", "URL"]
-    df.to_csv(ruta, index=False, encoding="utf-8-sig")  # utf-8-sig: abre bien en Excel
-    console.print(f"[dim]CSV exportado: {Path(ruta).resolve()} ({len(df)} filas)[/dim]")
+    # utf-8-sig: Excel en Windows reconoce las tildes
+    with open(ruta, "w", newline="", encoding="utf-8-sig") as f:
+        w = csv.writer(f)
+        w.writerow(["Nombre", "Precio", "Tienda", "URL"])
+        w.writerows([p.nombre, p.precio, p.tienda, p.url] for p in productos)
+    console.print(f"[dim]CSV exportado: {Path(ruta).resolve()} ({len(productos)} filas)[/dim]")
 
 
 def main() -> None:
